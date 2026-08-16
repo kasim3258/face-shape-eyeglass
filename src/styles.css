@@ -192,44 +192,44 @@
 
 /* Light mode palette (applied via the `light` class on <html>) */
 .light {
-  --background: oklch(0.93 0.04 220);
-  --foreground: oklch(0.24 0.03 190);
+  --background: oklch(0.96 0.015 80);
+  --foreground: oklch(0.24 0.03 265);
   --card: oklch(1 0 0 / 0.7);
-  --card-foreground: oklch(0.24 0.03 190);
-  --popover: oklch(0.99 0.005 200);
-  --popover-foreground: oklch(0.24 0.03 190);
-  --primary: oklch(0.44 0.11 158);
-  --primary-foreground: oklch(0.99 0.01 155);
-  --secondary: oklch(0.95 0.02 200);
-  --secondary-foreground: oklch(0.26 0.03 190);
-  --muted: oklch(0.95 0.015 200);
-  --muted-foreground: oklch(0.5 0.025 195);
-  --accent: oklch(0.6 0.11 200);
-  --accent-foreground: oklch(0.99 0.01 200);
+  --card-foreground: oklch(0.24 0.03 265);
+  --popover: oklch(0.99 0.006 80);
+  --popover-foreground: oklch(0.24 0.03 265);
+  --primary: oklch(0.58 0.15 52);
+  --primary-foreground: oklch(0.99 0.01 80);
+  --secondary: oklch(0.94 0.018 80);
+  --secondary-foreground: oklch(0.26 0.03 265);
+  --muted: oklch(0.94 0.014 80);
+  --muted-foreground: oklch(0.5 0.025 265);
+  --accent: oklch(0.52 0.09 250);
+  --accent-foreground: oklch(0.99 0.01 250);
   --destructive: oklch(0.58 0.23 25);
   --destructive-foreground: oklch(0.99 0.01 300);
-  --border: oklch(0.24 0.03 190 / 14%);
-  --input: oklch(0.24 0.03 190 / 16%);
-  --ring: oklch(0.44 0.11 158);
-  --glow: oklch(0.5 0.12 158);
-  --sidebar: oklch(0.99 0.005 200);
-  --sidebar-foreground: oklch(0.24 0.03 190);
-  --sidebar-primary: oklch(0.44 0.11 158);
-  --sidebar-primary-foreground: oklch(0.99 0.01 155);
-  --sidebar-accent: oklch(0.95 0.02 200);
-  --sidebar-accent-foreground: oklch(0.26 0.03 190);
-  --sidebar-border: oklch(0.24 0.03 190 / 14%);
-  --sidebar-ring: oklch(0.44 0.11 158);
+  --border: oklch(0.24 0.03 265 / 14%);
+  --input: oklch(0.24 0.03 265 / 16%);
+  --ring: oklch(0.58 0.15 52);
+  --glow: oklch(0.62 0.14 55);
+  --sidebar: oklch(0.99 0.006 80);
+  --sidebar-foreground: oklch(0.24 0.03 265);
+  --sidebar-primary: oklch(0.58 0.15 52);
+  --sidebar-primary-foreground: oklch(0.99 0.01 80);
+  --sidebar-accent: oklch(0.94 0.018 80);
+  --sidebar-accent-foreground: oklch(0.26 0.03 265);
+  --sidebar-border: oklch(0.24 0.03 265 / 14%);
+  --sidebar-ring: oklch(0.58 0.15 52);
 }
 
 .light body {
   background-image:
-    radial-gradient(60rem 40rem at 15% -10%, oklch(0.85 0.07 215 / 0.7), transparent 60%),
-    radial-gradient(50rem 40rem at 95% 10%, oklch(0.88 0.06 200 / 0.6), transparent 60%),
-    radial-gradient(55rem 45rem at 50% 110%, oklch(0.9 0.06 165 / 0.5), transparent 60%);
+    radial-gradient(60rem 40rem at 15% -10%, oklch(0.92 0.06 70 / 0.8), transparent 60%),
+    radial-gradient(50rem 40rem at 95% 10%, oklch(0.9 0.05 250 / 0.6), transparent 60%),
+    radial-gradient(55rem 45rem at 50% 110%, oklch(0.93 0.05 40 / 0.55), transparent 60%);
 }
 
 .light .glass-card {
   background: linear-gradient(160deg, oklch(1 0 0 / 0.85), oklch(1 0 0 / 0.6));
-  box-shadow: 0 20px 50px -30px oklch(0.3 0.06 285 / 0.5);
+  box-shadow: 0 20px 50px -30px oklch(0.3 0.05 265 / 0.5);
 }
