@@ -135,15 +135,36 @@ export function drawGlasses(
   w: number,
   h: number,
 ) {
-  const l = lm[33];
-  const r = lm[263];
-  if (!l || !r) return;
-  const leftEye = { x: l.x * w, y: l.y * h };
-  const rightEye = { x: r.x * w, y: r.y * h };
+  // Average a ring of landmarks per eye so the anchor sits on the pupil line,
+  // not on the outer corner (which rides high on the brow).
+  const center = (ids: number[]) => {
+    let x = 0;
+    let y = 0;
+    let n = 0;
+    for (const id of ids) {
+      const p = lm[id];
+      if (!p) continue;
+      x += p.x * w;
+      y += p.y * h;
+      n += 1;
+    }
+    return n ? { x: x / n, y: y / n } : null;
+  };
+
+  const leftEye = center([33, 133, 159, 145, 160, 144]);
+  const rightEye = center([263, 362, 386, 374, 385, 380]);
+  if (!leftEye || !rightEye) return;
+
   const eyeDist = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y);
   const angle = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
 
-  const gWidth = eyeDist * 1.9;
+  // Width follows temple-to-temple distance when available, so frames don't
+  // overshoot the face on wide-angle selfie cams.
+  const templeL = lm[234];
+  const templeR = lm[454];
+  const faceWidth =
+    templeL && templeR ? Math.hypot((templeR.x - templeL.x) * w, (templeR.y - templeL.y) * h) : eyeDist * 2.6;
+  const gWidth = Math.min(eyeDist * 2.05, faceWidth * 0.98);
   const gHeight = (glasses.naturalHeight / glasses.naturalWidth) * gWidth;
   const cx = (leftEye.x + rightEye.x) / 2;
   const cy = (leftEye.y + rightEye.y) / 2;
