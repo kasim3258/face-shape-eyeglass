@@ -70,14 +70,15 @@ const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
  * Runs entirely in the browser — no server round trip.
  */
 export function analyzeLandmarks(lm: Point[]): FaceAnalysis {
-  const foreheadTop = lm[10];
-  const chin = lm[152];
-  const cheekL = lm[234];
-  const cheekR = lm[454];
-  const jawL = lm[172];
-  const jawR = lm[397];
-  const browL = lm[21];
-  const browR = lm[251];
+  const at = (i: number): Point => lm[i] ?? { x: 0, y: 0 };
+  const foreheadTop = at(10);
+  const chin = at(152);
+  const cheekL = at(234);
+  const cheekR = at(454);
+  const jawL = at(172);
+  const jawR = at(397);
+  const browL = at(21);
+  const browR = at(251);
 
   const faceLength = dist(foreheadTop, chin);
   const cheekWidth = dist(cheekL, cheekR) || 1;
@@ -106,8 +107,9 @@ export function analyzeLandmarks(lm: Point[]): FaceAnalysis {
     (a, b) => b.score - a.score,
   );
 
-  const shape = scores[0].shape;
-  const confidence = Math.round(Math.min(99, scores[0].score * 100 + 22) * 100) / 100;
+  const top = scores[0] ?? { shape: "Oval" as FaceShape, score: 0.5 };
+  const shape = top.shape;
+  const confidence = Math.round(Math.min(99, top.score * 100 + 22) * 100) / 100;
   const note = confidence >= 55 ? "High confidence" : confidence >= 40 ? "Medium confidence" : "Low confidence";
 
   return {
@@ -133,8 +135,11 @@ export function drawGlasses(
   w: number,
   h: number,
 ) {
-  const leftEye = { x: lm[33].x * w, y: lm[33].y * h };
-  const rightEye = { x: lm[263].x * w, y: lm[263].y * h };
+  const l = lm[33];
+  const r = lm[263];
+  if (!l || !r) return;
+  const leftEye = { x: l.x * w, y: l.y * h };
+  const rightEye = { x: r.x * w, y: r.y * h };
   const eyeDist = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y);
   const angle = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
 
