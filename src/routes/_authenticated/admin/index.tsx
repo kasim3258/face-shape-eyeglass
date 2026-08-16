@@ -477,6 +477,47 @@ function AdminDashboard() {
         </div>
       </div>
 
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <form onSubmit={changePassword} className="glass-card p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <KeyRound className="size-4 text-primary" /> Change your admin password
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password"
+              className="h-10 rounded-xl"
+            />
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm password"
+              className="h-10 rounded-xl"
+            />
+          </div>
+          <Button type="submit" disabled={savingPassword} className="btn-hero mt-4 h-10 rounded-xl font-semibold hover:brightness-110">
+            {savingPassword && <Loader2 className="size-4 animate-spin" />} Update password
+          </Button>
+        </form>
+
+        <div className="glass-card p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <Trash2 className="size-4 text-destructive" /> Danger zone
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Permanently delete activity logs and image records for every user. Accounts and roles are kept.
+          </p>
+          <Button variant="outline" className="mt-4 h-10 rounded-xl text-destructive" onClick={() => void wipeAll()}>
+            <Trash2 className="size-4" /> Clear all user history
+          </Button>
+        </div>
+      </div>
+
       <div className="glass-card mt-6 p-5">
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
           <Activity className="size-4 text-primary" /> Live activity feed
