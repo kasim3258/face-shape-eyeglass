@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getImageLandmarker } from "@/lib/faceLandmarker";
 import { analyzeLandmarks, drawGlasses, GLASSES_URL, type FaceAnalysis } from "@/lib/faceShape";
 import { ResultPanel } from "@/components/ResultPanel";
+import { logActivity } from "@/lib/activity";
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -29,6 +30,7 @@ export function UploadAnalyzer() {
     if (!file) return;
     setResult(null);
     setError(null);
+    void logActivity("Image Upload", { metadata: { name: file.name, size: file.size } });
     setFileUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
@@ -39,6 +41,7 @@ export function UploadAnalyzer() {
     if (!fileUrl) return;
     setBusy(true);
     setError(null);
+    void logActivity("Button Click: Analyze Photo");
     try {
       const [img, landmarker] = await Promise.all([loadImage(fileUrl), getImageLandmarker()]);
       const res = landmarker.detect(img);
@@ -46,10 +49,14 @@ export function UploadAnalyzer() {
       if (!lm) {
         setResult(null);
         setError("No face detected. Try a clear, front-facing photo with good lighting.");
+        void logActivity("Error: No Face Detected");
         return;
       }
       const analysis = analyzeLandmarks(lm);
       setResult(analysis);
+      void logActivity("Prediction Generated", {
+        metadata: { source: "upload", shape: analysis.shape, confidence: analysis.confidence },
+      });
 
       const canvas = canvasRef.current;
       if (canvas) {
@@ -69,6 +76,7 @@ export function UploadAnalyzer() {
     } catch (e) {
       console.error(e);
       setError("Analysis failed. Please try again.");
+      void logActivity("Error: Analysis Failed");
     } finally {
       setBusy(false);
     }

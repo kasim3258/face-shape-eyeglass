@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getVideoLandmarker } from "@/lib/faceLandmarker";
 import { analyzeLandmarks, drawGlasses, GLASSES_URL, type FaceAnalysis } from "@/lib/faceShape";
 import { ResultPanel } from "@/components/ResultPanel";
+import { logActivity } from "@/lib/activity";
 
 export function LiveTryOn() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -40,6 +41,7 @@ export function LiveTryOn() {
   const start = useCallback(async () => {
     setError(null);
     setLoading(true);
+    void logActivity("Button Click: Start Camera");
     try {
       const landmarker = await getVideoLandmarker();
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -78,6 +80,11 @@ export function LiveTryOn() {
         const mirrored = lm.map((p) => ({ x: 1 - p.x, y: p.y }));
         if (frame++ % 8 === 0) {
           const analysis = analyzeLandmarks(mirrored);
+          if (analysis.shape !== shapeRef.current) {
+            void logActivity("Prediction Generated", {
+              metadata: { source: "live", shape: analysis.shape, confidence: analysis.confidence },
+            });
+          }
           shapeRef.current = analysis.shape;
           setResult(analysis);
         }
@@ -89,6 +96,7 @@ export function LiveTryOn() {
       console.error(e);
       setLoading(false);
       setError("Camera unavailable. Allow camera access in your browser and try again.");
+      void logActivity("Error: Camera Unavailable");
       stop();
     }
   }, [stop]);
