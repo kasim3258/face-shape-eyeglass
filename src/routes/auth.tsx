@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { recordLogin } from "@/lib/auth-actions";
 import { cn } from "@/lib/utils";
 
@@ -43,9 +44,44 @@ function AuthPage() {
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) void navigate({ to: "/studio", replace: true });
+      if (!data.session) return;
+      const pending = sessionStorage.getItem("pending-oauth-login");
+      const finish = async () => {
+        if (pending) {
+          sessionStorage.removeItem("pending-oauth-login");
+          await recordLogin();
+          toast.success("Signed in with Google");
+        }
+        await navigate({ to: "/studio", replace: true });
+      };
+      void finish();
     });
   }, [navigate]);
+
+  const signInWithGoogle = async () => {
+    setBusy(true);
+    try {
+      sessionStorage.setItem("pending-oauth-login", "1");
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/auth`,
+      });
+      if (result.error) {
+        sessionStorage.removeItem("pending-oauth-login");
+        toast.error(result.error.message ?? "Google sign-in failed");
+        return;
+      }
+      if (result.redirected) return;
+      sessionStorage.removeItem("pending-oauth-login");
+      await recordLogin();
+      toast.success("Signed in with Google");
+      await navigate({ to: "/studio", replace: true });
+    } catch (error) {
+      sessionStorage.removeItem("pending-oauth-login");
+      toast.error(error instanceof Error ? error.message : "Google sign-in failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,6 +236,31 @@ function AuthPage() {
             {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
           </Button>
         </form>
+
+        {mode !== "forgot" && (
+          <>
+            <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              or
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={signInWithGoogle}
+              className="h-12 w-full rounded-xl font-semibold"
+            >
+              <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
+                <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z" />
+                <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z" />
+                <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.7l4-3z" />
+                <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8z" />
+              </svg>
+              Continue with Google
+            </Button>
+          </>
+        )}
 
         {sent && (
           <p className="mt-4 rounded-xl border border-border bg-primary/10 p-3 text-center text-sm">
