@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, Monitor, Globe } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Clock, Monitor, Globe, Loader2, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageGallery } from "@/components/admin/ImageGallery";
-import { fetchUserDetail } from "@/lib/admin-data";
+import { clearUserHistory, fetchUserDetail, setAdminRole } from "@/lib/admin-data";
 
 export const Route = createFileRoute("/_authenticated/admin/user/$userId")({
   head: () => ({
@@ -33,9 +34,11 @@ export const Route = createFileRoute("/_authenticated/admin/user/$userId")({
 
 function UserDetail() {
   const { userId } = Route.useParams();
+  const queryClient = useQueryClient();
   const [action, setAction] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-user", userId],
@@ -56,6 +59,39 @@ function UserDetail() {
 
   const logins = logs.filter((l) => l.action === "User Login");
   const logouts = logs.filter((l) => l.action === "User Logout");
+  const isAdmin = data?.role === "admin";
+
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["admin-user", userId] });
+    await queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+  };
+
+  const toggleRole = async () => {
+    setBusy(true);
+    try {
+      await setAdminRole(userId, !isAdmin);
+      toast.success(isAdmin ? "Admin access removed" : "User promoted to admin");
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update role");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const wipeHistory = async () => {
+    if (!window.confirm("Delete all activity logs and image records for this user?")) return;
+    setBusy(true);
+    try {
+      await clearUserHistory(userId);
+      toast.success("User history cleared");
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not clear history");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-10">
@@ -76,11 +112,20 @@ function UserDetail() {
             <h1 className="text-2xl font-extrabold tracking-tight">{data?.profile?.full_name || "Unnamed user"}</h1>
             <p className="text-sm text-muted-foreground">{data?.profile?.email}</p>
           </div>
-          <Badge className="rounded-lg" variant={data?.role === "admin" ? "default" : "secondary"}>{data?.role}</Badge>
+          <Badge className="rounded-lg" variant={isAdmin ? "default" : "secondary"}>{data?.role}</Badge>
           <div className="ml-auto grid grid-cols-3 gap-6 text-center">
             <div><p className="text-xl font-bold">{logins.length}</p><p className="text-xs text-muted-foreground">Logins</p></div>
             <div><p className="text-xl font-bold">{logouts.length}</p><p className="text-xs text-muted-foreground">Logouts</p></div>
             <div><p className="text-xl font-bold">{images.length}</p><p className="text-xs text-muted-foreground">Uploads</p></div>
+          </div>
+          <div className="flex w-full flex-wrap gap-2 border-t border-border/60 pt-4">
+            <Button variant="outline" size="sm" className="rounded-xl" disabled={busy} onClick={toggleRole}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : isAdmin ? <ShieldOff className="size-4" /> : <ShieldCheck className="size-4" />}
+              {isAdmin ? "Remove admin access" : "Make admin"}
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-xl text-destructive" disabled={busy} onClick={wipeHistory}>
+              <Trash2 className="size-4" /> Clear this user's history
+            </Button>
           </div>
         </div>
       )}
