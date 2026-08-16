@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Glasses, Loader2, Lock, Mail, User as UserIcon } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Glasses, Loader2, Lock, Mail, ShieldCheck, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -152,7 +152,7 @@ function AuthPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         <div className="animate-float-slow absolute -right-40 -top-40 size-[32rem] rounded-full bg-primary/15 blur-3xl" />
         <div className="animate-float-slow absolute -bottom-52 -left-40 size-[36rem] rounded-full bg-accent/10 blur-3xl" />
@@ -178,7 +178,7 @@ function AuthPage() {
         <div className="mb-6 flex gap-1 rounded-2xl border border-border bg-white/5 p-1">
           {([
             { id: "signin", label: "Sign in" },
-            { id: "signup", label: "Sign up" },
+            { id: "signup", label: "Create account" },
           ] as const).map(({ id, label }) => (
             <button
               key={id}
@@ -280,6 +280,13 @@ function AuthPage() {
           )}
         </div>
       </div>
+
+      <Link
+        to="/admin-login"
+        className="glass-card mt-4 flex w-full max-w-md items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+      >
+        <ShieldCheck className="size-4" /> Admin login
+      </Link>
     </main>
   );
 }
