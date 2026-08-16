@@ -65,7 +65,7 @@ export async function logActivity(action: string, options: LogOptions = {}): Pro
       ip_address: ip,
       browser: getBrowser(),
       device: getDevice(),
-      metadata: options.metadata ?? null,
+      metadata: (options.metadata ?? null) as never,
     });
   } catch (error) {
     console.warn("activity log failed", error);

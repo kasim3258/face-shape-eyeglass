@@ -32,8 +32,14 @@ function ResetPassword() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = z.string().min(6, "Password must be at least 6 characters").safeParse(password);
-    if (!parsed.success) return toast.error(parsed.error.issues[0]!.message);
-    if (password !== confirm) return toast.error("Passwords do not match");
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]!.message);
+      return;
+    }
+    if (password !== confirm) {
+      toast.error("Passwords do not match");
+      return;
+    }
 
     setBusy(true);
     try {
