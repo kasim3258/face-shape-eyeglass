@@ -10,6 +10,7 @@ export function LiveTryOn() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
   const glassesCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  const shapeRef = useRef<FaceAnalysis["shape"]>("Oval");
   const [active, setActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,9 +76,12 @@ export function LiveTryOn() {
         if (!lm) return;
 
         const mirrored = lm.map((p) => ({ x: 1 - p.x, y: p.y }));
-        if (frame++ % 10 === 0) setResult(analyzeLandmarks(mirrored));
-        const shape = (result?.shape) ?? analyzeLandmarks(mirrored).shape;
-        const glasses = getGlasses(GLASSES_URL[shape]);
+        if (frame++ % 8 === 0) {
+          const analysis = analyzeLandmarks(mirrored);
+          shapeRef.current = analysis.shape;
+          setResult(analysis);
+        }
+        const glasses = getGlasses(GLASSES_URL[shapeRef.current]);
         if (glasses) drawGlasses(ctx, glasses, mirrored, w, h);
       };
       loop();
@@ -87,7 +91,7 @@ export function LiveTryOn() {
       setError("Camera unavailable. Allow camera access in your browser and try again.");
       stop();
     }
-  }, [result?.shape, stop]);
+  }, [stop]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
