@@ -1,14 +1,20 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Activity,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   Images,
+  KeyRound,
+  Loader2,
   LogIn,
+  ShieldCheck,
+  ShieldOff,
   Sparkles,
+  Trash2,
   TriangleAlert,
   Users,
   Zap,
@@ -41,7 +47,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AnimatedCounter } from "@/components/admin/AnimatedCounter";
-import { dailySeries, fetchAdminOverview, type AdminUser } from "@/lib/admin-data";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  clearAllHistory,
+  clearUserHistory,
+  dailySeries,
+  fetchAdminOverview,
+  setAdminRole,
+  type AdminUser,
+} from "@/lib/admin-data";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
@@ -93,14 +107,83 @@ function initials(name: string, email: string) {
 }
 
 function AdminDashboard() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortKey, setSortKey] = useState<keyof AdminUser>("created_at");
   const [asc, setAsc] = useState(false);
   const [page, setPage] = useState(0);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const { data, isLoading } = useQuery({ queryKey: ["admin-overview"], queryFn: fetchAdminOverview });
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+
+  const toggleRole = async (u: AdminUser) => {
+    setBusyId(u.id);
+    try {
+      await setAdminRole(u.id, u.role !== "admin");
+      toast.success(u.role === "admin" ? "Admin access removed" : `${u.email} is now an admin`);
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update role");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const wipeUser = async (u: AdminUser) => {
+    if (!window.confirm(`Delete all activity and image records for ${u.email}?`)) return;
+    setBusyId(u.id);
+    try {
+      await clearUserHistory(u.id);
+      toast.success("User history cleared");
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not clear history");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const wipeAll = async () => {
+    if (!window.confirm("Delete activity and image history for every user?")) return;
+    try {
+      await clearAllHistory();
+      toast.success("All history cleared");
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not clear history");
+    }
+  };
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Password updated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update password");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   const users = data?.users ?? [];
   const logs = data?.logs ?? [];
@@ -299,15 +382,16 @@ function AdminDashboard() {
                   <span className="inline-flex items-center gap-1">Predictions <ArrowUpDown className="size-3" /></span>
                 </th>
                 <th className="py-3 pr-3">Status</th>
+                <th className="py-3 pr-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="py-2"><Skeleton className="h-10 w-full rounded-xl" /></td></tr>
+                  <tr key={i}><td colSpan={7} className="py-2"><Skeleton className="h-10 w-full rounded-xl" /></td></tr>
                 ))}
               {!isLoading && rows.length === 0 && (
-                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No users match these filters.</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No users match these filters.</td></tr>
               )}
               {rows.map((u) => (
                 <tr key={u.id} className="border-b border-border/60 transition-colors last:border-0 hover:bg-primary/5">
@@ -345,6 +429,35 @@ function AdminDashboard() {
                   <td className="py-3 pr-3">
                     <span className={u.status === "Active" ? "text-primary" : "text-muted-foreground"}>{u.status}</span>
                   </td>
+                  <td className="py-3 pr-3">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl"
+                        disabled={busyId === u.id}
+                        onClick={() => void toggleRole(u)}
+                      >
+                        {busyId === u.id ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : u.role === "admin" ? (
+                          <ShieldOff className="size-4" />
+                        ) : (
+                          <ShieldCheck className="size-4" />
+                        )}
+                        {u.role === "admin" ? "Revoke" : "Make admin"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl text-destructive"
+                        disabled={busyId === u.id}
+                        onClick={() => void wipeUser(u)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -361,6 +474,47 @@ function AdminDashboard() {
               Next <ChevronRight className="size-4" />
             </Button>
           </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <form onSubmit={changePassword} className="glass-card p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <KeyRound className="size-4 text-primary" /> Change your admin password
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password"
+              className="h-10 rounded-xl"
+            />
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm password"
+              className="h-10 rounded-xl"
+            />
+          </div>
+          <Button type="submit" disabled={savingPassword} className="btn-hero mt-4 h-10 rounded-xl font-semibold hover:brightness-110">
+            {savingPassword && <Loader2 className="size-4 animate-spin" />} Update password
+          </Button>
+        </form>
+
+        <div className="glass-card p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <Trash2 className="size-4 text-destructive" /> Danger zone
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Permanently delete activity logs and image records for every user. Accounts and roles are kept.
+          </p>
+          <Button variant="outline" className="mt-4 h-10 rounded-xl text-destructive" onClick={() => void wipeAll()}>
+            <Trash2 className="size-4" /> Clear all user history
+          </Button>
         </div>
       </div>
 
