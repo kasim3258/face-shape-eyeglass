@@ -131,6 +131,37 @@ export async function fetchUserDetail(userId: string) {
 }
 
 export function dailySeries(logs: ActivityLog[], days = 14) {
+  return dailySeriesImpl(logs, days);
+}
+
+/** Grant or revoke the admin role for a user. */
+export async function setAdminRole(userId: string, makeAdmin: boolean) {
+  if (makeAdmin) {
+    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
+    if (error && !error.message.includes("duplicate")) throw error;
+  } else {
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
+    if (error) throw error;
+  }
+}
+
+/** Delete a single user's activity logs and image records. */
+export async function clearUserHistory(userId: string) {
+  const { error: lErr } = await supabase.from("user_activity_logs").delete().eq("user_id", userId);
+  if (lErr) throw lErr;
+  const { error: iErr } = await supabase.from("uploaded_images").delete().eq("user_id", userId);
+  if (iErr) throw iErr;
+}
+
+/** Delete activity logs and image records for every user. */
+export async function clearAllHistory() {
+  const { error: lErr } = await supabase.from("user_activity_logs").delete().not("id", "is", null);
+  if (lErr) throw lErr;
+  const { error: iErr } = await supabase.from("uploaded_images").delete().not("id", "is", null);
+  if (iErr) throw iErr;
+}
+
+function dailySeriesImpl(logs: ActivityLog[], days: number) {
   const buckets: { date: string; logins: number; actions: number }[] = [];
   const index = new Map<string, number>();
   for (let i = days - 1; i >= 0; i--) {
