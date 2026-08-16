@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Images,
   LogIn,
-  ShieldAlert,
-  UserPlus,
+  Sparkles,
+  TriangleAlert,
   Users,
   Zap,
 } from "lucide-react";
@@ -32,16 +35,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAuth } from "@/hooks/useAuth";
+import {
+  Tooltip as UiTooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { AnimatedCounter } from "@/components/admin/AnimatedCounter";
 import { dailySeries, fetchAdminOverview, type AdminUser } from "@/lib/admin-data";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
     meta: [
-      { title: "Admin Dashboard · Glasses AI" },
-      { name: "description", content: "Monitor users, logins and activity across the Glasses AI platform." },
-      { property: "og:title", content: "Admin Dashboard · Glasses AI" },
-      { property: "og:description", content: "Users, logins and activity analytics for Glasses AI." },
+      { title: "Mission Control · Glasses AI Admin" },
+      { name: "description", content: "Live overview of users, logins, uploads and predictions across the Glasses AI platform." },
+      { property: "og:title", content: "Mission Control · Glasses AI Admin" },
+      { property: "og:description", content: "Users, logins, uploads and activity analytics for Glasses AI." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -51,21 +59,40 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 
 const PAGE_SIZE = 8;
 
-function StatCard({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: number | string }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  delay,
+}: {
+  icon: typeof Users;
+  label: string;
+  value: number;
+  delay: number;
+}) {
   return (
-    <div className="glass-card p-5 transition-transform duration-300 hover:-translate-y-1">
+    <div
+      style={{ animationDelay: `${delay}ms` }}
+      className="glass-card relative overflow-hidden p-5 duration-500 animate-in fade-in slide-in-from-bottom-3 transition-transform hover:-translate-y-1"
+    >
+      <div aria-hidden className="pointer-events-none absolute -right-10 -top-10 size-24 rounded-full bg-primary/20 blur-2xl" />
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
         <Icon className="size-4 text-primary" />
       </div>
-      <p className="mt-3 text-3xl font-extrabold tracking-tight">{value}</p>
+      <p className="mt-3 text-3xl font-extrabold tracking-tight">
+        <AnimatedCounter value={value} />
+      </p>
     </div>
   );
 }
 
+function initials(name: string, email: string) {
+  const source = name && name !== "—" ? name : email;
+  return source.slice(0, 2).toUpperCase();
+}
+
 function AdminDashboard() {
-  const { isAdmin, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -73,28 +100,26 @@ function AdminDashboard() {
   const [asc, setAsc] = useState(false);
   const [page, setPage] = useState(0);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-overview"],
-    queryFn: fetchAdminOverview,
-    enabled: isAdmin,
-  });
+  const { data, isLoading } = useQuery({ queryKey: ["admin-overview"], queryFn: fetchAdminOverview });
 
   const users = data?.users ?? [];
   const logs = data?.logs ?? [];
+  const images = data?.images ?? [];
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const weekAgo = Date.now() - 7 * 86400000;
     return {
       totalUsers: users.length,
       activeToday: new Set(logs.filter((l) => l.created_at.slice(0, 10) === today).map((l) => l.user_id)).size,
+      totalImages: images.length,
       totalLogins: logs.filter((l) => l.action === "User Login").length,
-      totalActions: logs.length,
-      newThisWeek: users.filter((u) => new Date(u.created_at).getTime() > weekAgo).length,
+      totalPredictions: logs.filter((l) => l.action === "Prediction Generated").length,
     };
-  }, [users, logs]);
+  }, [users, logs, images]);
 
   const series = useMemo(() => dailySeries(logs), [logs]);
+  const feed = logs.slice(0, 12);
+  const flagged = users.filter((u) => u.suspicious.length > 0);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -124,36 +149,20 @@ function AdminDashboard() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="mx-auto max-w-6xl space-y-4 px-4 py-10">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-3xl" />)}
-        </div>
-        <Skeleton className="h-72 rounded-3xl" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-24 text-center">
-        <ShieldAlert className="size-10 text-destructive" />
-        <h1 className="text-2xl font-bold">Admins only</h1>
-        <p className="text-sm text-muted-foreground">
-          Your account doesn't have permission to view the admin dashboard.
-        </p>
-        <Button className="rounded-xl" onClick={() => navigate({ to: "/studio" })}>Back to studio</Button>
-      </div>
-    );
-  }
-
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10">
-      <div className="mb-8 duration-500 animate-in fade-in slide-in-from-bottom-2">
-        <h1 className="text-3xl font-extrabold tracking-tight">Admin dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Users, logins and activity across Glasses AI.</p>
+      <div className="mb-8 flex flex-wrap items-end gap-3 duration-500 animate-in fade-in slide-in-from-bottom-2">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            <span className="text-gradient">Mission Control</span>
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">Live users, logins, uploads and predictions.</p>
+        </div>
+        <Button asChild className="btn-hero ml-auto rounded-xl font-semibold hover:brightness-110">
+          <Link to="/admin/gallery">
+            <Images className="size-4" /> Image gallery
+          </Link>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -162,11 +171,32 @@ function AdminDashboard() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard icon={Users} label="Total users" value={stats.totalUsers} />
-          <StatCard icon={Zap} label="Active today" value={stats.activeToday} />
-          <StatCard icon={LogIn} label="Total logins" value={stats.totalLogins} />
-          <StatCard icon={Activity} label="Total actions" value={stats.totalActions} />
-          <StatCard icon={UserPlus} label="New this week" value={stats.newThisWeek} />
+          <StatCard icon={Users} label="Total users" value={stats.totalUsers} delay={0} />
+          <StatCard icon={Zap} label="Active today" value={stats.activeToday} delay={60} />
+          <StatCard icon={Images} label="Images uploaded" value={stats.totalImages} delay={120} />
+          <StatCard icon={LogIn} label="Total logins" value={stats.totalLogins} delay={180} />
+          <StatCard icon={Sparkles} label="Predictions" value={stats.totalPredictions} delay={240} />
+        </div>
+      )}
+
+      {flagged.length > 0 && (
+        <div className="glass-card mt-6 border-destructive/40 p-5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-destructive">
+            <TriangleAlert className="size-4" /> Suspicious activity detected
+          </h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {flagged.map((u) => (
+              <Link
+                key={u.id}
+                to="/admin/user/$userId"
+                params={{ userId: u.id }}
+                className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs transition-colors hover:bg-destructive/20"
+              >
+                <span className="font-medium">{u.full_name !== "—" ? u.full_name : u.email}</span>
+                <span className="ml-2 text-muted-foreground">{u.suspicious.join(" · ")}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 
@@ -244,9 +274,9 @@ function AdminDashboard() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
-            <SelectTrigger className="h-10 w-36 rounded-xl"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-10 w-32 rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="all">All status</SelectItem>
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Inactive">Inactive</SelectItem>
             </SelectContent>
@@ -254,50 +284,66 @@ function AdminDashboard() {
         </div>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                {([
-                  ["full_name", "Name"],
-                  ["email", "Email"],
-                  ["role", "Role"],
-                  ["last_login_at", "Last login"],
-                  ["totalActions", "Actions"],
-                  ["status", "Status"],
-                ] as const).map(([key, label]) => (
-                  <th key={key} className="py-3 pr-4">
-                    <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => sortBy(key)}>
-                      {label} <ArrowUpDown className="size-3" />
-                    </button>
-                  </th>
-                ))}
+                <th className="py-3 pr-3">User</th>
+                <th className="py-3 pr-3">Role</th>
+                <th className="cursor-pointer py-3 pr-3" onClick={() => sortBy("last_login_at")}>
+                  <span className="inline-flex items-center gap-1">Last login <ArrowUpDown className="size-3" /></span>
+                </th>
+                <th className="cursor-pointer py-3 pr-3" onClick={() => sortBy("totalUploads")}>
+                  <span className="inline-flex items-center gap-1">Uploads <ArrowUpDown className="size-3" /></span>
+                </th>
+                <th className="cursor-pointer py-3 pr-3" onClick={() => sortBy("totalPredictions")}>
+                  <span className="inline-flex items-center gap-1">Predictions <ArrowUpDown className="size-3" /></span>
+                </th>
+                <th className="py-3 pr-3">Status</th>
               </tr>
             </thead>
             <tbody>
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="py-2"><Skeleton className="h-9 w-full rounded-lg" /></td></tr>
+                  <tr key={i}><td colSpan={6} className="py-2"><Skeleton className="h-10 w-full rounded-xl" /></td></tr>
                 ))}
               {!isLoading && rows.length === 0 && (
-                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No users match your filters.</td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No users match these filters.</td></tr>
               )}
               {rows.map((u) => (
-                <tr key={u.id} className="border-b border-border/60 transition-colors hover:bg-primary/5">
-                  <td className="py-3 pr-4 font-medium">
-                    <Link to="/admin/user/$userId" params={{ userId: u.id }} className="hover:text-primary hover:underline">
-                      {u.full_name}
+                <tr key={u.id} className="border-b border-border/60 transition-colors last:border-0 hover:bg-primary/5">
+                  <td className="py-3 pr-3">
+                    <Link to="/admin/user/$userId" params={{ userId: u.id }} className="flex items-center gap-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+                        {initials(u.full_name, u.email)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-2 font-medium">
+                          <span className="truncate">{u.full_name}</span>
+                          {u.suspicious.length > 0 && (
+                            <UiTooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                                  <TriangleAlert className="size-3" /> Risk
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{u.suspicious.join(" · ")}</TooltipContent>
+                            </UiTooltip>
+                          )}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">{u.email}</span>
+                      </span>
                     </Link>
                   </td>
-                  <td className="py-3 pr-4 text-muted-foreground">{u.email}</td>
-                  <td className="py-3 pr-4">
-                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
+                  <td className="py-3 pr-3">
+                    <Badge variant={u.role === "admin" ? "default" : "secondary"} className="rounded-lg">{u.role}</Badge>
                   </td>
-                  <td className="py-3 pr-4 text-muted-foreground">
-                    {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "Never"}
+                  <td className="py-3 pr-3 text-muted-foreground">
+                    {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : "—"}
                   </td>
-                  <td className="py-3 pr-4">{u.totalActions}</td>
-                  <td className="py-3 pr-4">
-                    <Badge variant={u.status === "Active" ? "default" : "outline"}>{u.status}</Badge>
+                  <td className="py-3 pr-3">{u.totalUploads}</td>
+                  <td className="py-3 pr-3">{u.totalPredictions}</td>
+                  <td className="py-3 pr-3">
+                    <span className={u.status === "Active" ? "text-primary" : "text-muted-foreground"}>{u.status}</span>
                   </td>
                 </tr>
               ))}
@@ -306,17 +352,44 @@ function AdminDashboard() {
         </div>
 
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-          <span>{filtered.length} users</span>
-          <div className="flex items-center gap-2">
+          <span>Page {current + 1} of {pageCount} · {filtered.length} users</span>
+          <div className="flex gap-2">
             <Button variant="outline" size="sm" className="rounded-xl" disabled={current === 0} onClick={() => setPage(current - 1)}>
-              Previous
+              <ChevronLeft className="size-4" /> Prev
             </Button>
-            <span>Page {current + 1} / {pageCount}</span>
             <Button variant="outline" size="sm" className="rounded-xl" disabled={current >= pageCount - 1} onClick={() => setPage(current + 1)}>
-              Next
+              Next <ChevronRight className="size-4" />
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="glass-card mt-6 p-5">
+        <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+          <Activity className="size-4 text-primary" /> Live activity feed
+        </h2>
+        {isLoading ? (
+          <Skeleton className="h-40 w-full rounded-2xl" />
+        ) : feed.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {feed.map((log, i) => (
+              <li
+                key={log.id}
+                style={{ animationDelay: `${i * 40}ms` }}
+                className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 px-3 py-2 text-sm duration-500 animate-in fade-in slide-in-from-left-2"
+              >
+                <span className="size-2 rounded-full bg-primary" />
+                <span className="font-medium">{log.action}</span>
+                <span className="text-muted-foreground">{log.email}</span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {new Date(log.created_at).toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </main>
   );

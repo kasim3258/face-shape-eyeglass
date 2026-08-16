@@ -44,6 +44,51 @@ export type Database = {
         }
         Relationships: []
       }
+      uploaded_images: {
+        Row: {
+          created_at: string
+          email: string
+          face_shape: string | null
+          file_size: number | null
+          id: string
+          image_type: string | null
+          original_image_url: string | null
+          processed_image_url: string | null
+          updated_at: string
+          uploaded_at: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          face_shape?: string | null
+          file_size?: number | null
+          id?: string
+          image_type?: string | null
+          original_image_url?: string | null
+          processed_image_url?: string | null
+          updated_at?: string
+          uploaded_at?: string
+          user_id: string
+          user_name?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          face_shape?: string | null
+          file_size?: number | null
+          id?: string
+          image_type?: string | null
+          original_image_url?: string | null
+          processed_image_url?: string | null
+          updated_at?: string
+          uploaded_at?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       user_activity_logs: {
         Row: {
           action: string

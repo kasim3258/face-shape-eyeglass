@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { UploadedImage } from "@/lib/uploads";
 
 export type ActivityLog = {
   id: string;
@@ -22,12 +23,40 @@ export type AdminUser = {
   last_logout_at: string | null;
   role: string;
   totalActions: number;
+  totalUploads: number;
+  totalPredictions: number;
+  suspicious: string[];
   status: "Active" | "Inactive";
 };
 
+/** Heuristic risk detection over a user's recent activity. */
+export function detectSuspicious(logs: ActivityLog[], uploads: UploadedImage[]): string[] {
+  const dayAgo = Date.now() - 86400000;
+  const recent = logs.filter((l) => new Date(l.created_at).getTime() > dayAgo);
+  const flags: string[] = [];
+
+  const devices = new Set(recent.map((l) => `${l.device ?? "?"}·${l.browser ?? "?"}`));
+  if (devices.size >= 3) flags.push(`${devices.size} devices in 24h`);
+
+  const ips = new Set(recent.map((l) => l.ip_address).filter(Boolean));
+  if (ips.size >= 3) flags.push(`${ips.size} IP addresses in 24h`);
+
+  const recentUploads = uploads.filter((u) => new Date(u.uploaded_at).getTime() > dayAgo);
+  if (recentUploads.length >= 15) flags.push(`${recentUploads.length} uploads in 24h`);
+
+  const logins = recent.filter((l) => l.action === "User Login");
+  if (logins.length >= 8) flags.push(`${logins.length} logins in 24h`);
+
+  return flags;
+}
+
 export async function fetchAdminOverview() {
-  const [{ data: profiles, error: pErr }, { data: roles, error: rErr }, { data: logs, error: lErr }] =
-    await Promise.all([
+  const [
+    { data: profiles, error: pErr },
+    { data: roles, error: rErr },
+    { data: logs, error: lErr },
+    { data: images },
+  ] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("user_roles").select("user_id, role"),
       supabase
@@ -35,11 +64,13 @@ export async function fetchAdminOverview() {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(5000),
+      supabase.from("uploaded_images").select("*").order("uploaded_at", { ascending: false }).limit(5000),
     ]);
 
   if (pErr || rErr || lErr) throw pErr ?? rErr ?? lErr;
 
   const logRows = (logs ?? []) as ActivityLog[];
+  const imageRows = (images ?? []) as UploadedImage[];
   const actionsByUser = new Map<string, number>();
   const lastSeen = new Map<string, string>();
   for (const log of logRows) {
@@ -52,6 +83,8 @@ export async function fetchAdminOverview() {
   const users: AdminUser[] = (profiles ?? []).map((p) => {
     const role = (roles ?? []).find((r) => r.user_id === p.id)?.role ?? "user";
     const seen = lastSeen.get(p.id) ?? p.last_login_at;
+    const userLogs = logRows.filter((l) => l.user_id === p.id);
+    const userImages = imageRows.filter((i) => i.user_id === p.id);
     return {
       id: p.id,
       full_name: p.full_name || "—",
@@ -61,15 +94,18 @@ export async function fetchAdminOverview() {
       last_logout_at: p.last_logout_at,
       role,
       totalActions: actionsByUser.get(p.id) ?? 0,
+      totalUploads: userImages.length,
+      totalPredictions: userLogs.filter((l) => l.action === "Prediction Generated").length,
+      suspicious: detectSuspicious(userLogs, userImages),
       status: seen && new Date(seen).getTime() > thirtyDaysAgo ? "Active" : "Inactive",
     };
   });
 
-  return { users, logs: logRows };
+  return { users, logs: logRows, images: imageRows };
 }
 
 export async function fetchUserDetail(userId: string) {
-  const [{ data: profile }, { data: roles }, { data: logs }] = await Promise.all([
+  const [{ data: profile }, { data: roles }, { data: logs }, { data: images }] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", userId),
     supabase
@@ -78,12 +114,19 @@ export async function fetchUserDetail(userId: string) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(2000),
+    supabase
+      .from("uploaded_images")
+      .select("*")
+      .eq("user_id", userId)
+      .order("uploaded_at", { ascending: false })
+      .limit(500),
   ]);
 
   return {
     profile,
     role: roles?.[0]?.role ?? "user",
     logs: (logs ?? []) as ActivityLog[],
+    images: (images ?? []) as UploadedImage[],
   };
 }
 

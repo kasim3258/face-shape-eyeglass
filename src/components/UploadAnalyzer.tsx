@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, Upload, RotateCcw } from "lucide-react";
+import { Download, Loader2, Sparkles, Upload, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getImageLandmarker } from "@/lib/faceLandmarker";
 import { analyzeLandmarks, drawGlasses, GLASSES_URL, type FaceAnalysis } from "@/lib/faceShape";
 import { ResultPanel } from "@/components/ResultPanel";
 import { logActivity } from "@/lib/activity";
+import { saveUploadedImage } from "@/lib/uploads";
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -18,6 +19,7 @@ function loadImage(src: string) {
 
 export function UploadAnalyzer() {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FaceAnalysis | null>(null);
@@ -30,6 +32,7 @@ export function UploadAnalyzer() {
     if (!file) return;
     setResult(null);
     setError(null);
+    setFile(file);
     void logActivity("Image Upload", { metadata: { name: file.name, size: file.size } });
     setFileUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -73,6 +76,14 @@ export function UploadAnalyzer() {
           drawGlasses(ctx, glasses, lm, w, h);
         }
       }
+      if (file) {
+        const processed = await new Promise<Blob | null>((resolve) =>
+          canvasRef.current
+            ? canvasRef.current.toBlob((b) => resolve(b), "image/png")
+            : resolve(null),
+        );
+        void saveUploadedImage({ file, processed, faceShape: analysis.shape });
+      }
     } catch (e) {
       console.error(e);
       setError("Analysis failed. Please try again.");
@@ -80,7 +91,17 @@ export function UploadAnalyzer() {
     } finally {
       setBusy(false);
     }
-  }, [fileUrl]);
+  }, [fileUrl, file]);
+
+  const download = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    void logActivity("Download", { metadata: { shape: result?.shape ?? null } });
+    const link = document.createElement("a");
+    link.download = `glasses-ai-${result?.shape ?? "result"}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -125,8 +146,13 @@ export function UploadAnalyzer() {
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
             {busy ? "Analyzing…" : "Analyze & find matches"}
           </Button>
+          {result && (
+            <Button variant="outline" className="h-12 rounded-xl" onClick={download}>
+              <Download className="size-4" /> Save
+            </Button>
+          )}
           {fileUrl && (
-            <Button variant="outline" className="h-12 rounded-xl" onClick={() => { setFileUrl(null); setResult(null); setError(null); }}>
+            <Button variant="outline" className="h-12 rounded-xl" onClick={() => { setFileUrl(null); setFile(null); setResult(null); setError(null); }}>
               <RotateCcw className="size-4" /> Reset
             </Button>
           )}
