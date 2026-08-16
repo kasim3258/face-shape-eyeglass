@@ -17,7 +17,7 @@ export function AppHeader() {
     try {
       await signOutUser();
       toast.success("Signed out");
-      await navigate({ to: "/auth", replace: true });
+      await navigate({ to: "/login", replace: true });
     } catch {
       toast.error("Could not sign out. Try again.");
     } finally {
