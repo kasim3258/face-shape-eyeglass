@@ -151,9 +151,13 @@ export function drawGlasses(
     return n ? { x: x / n, y: y / n } : null;
   };
 
-  const leftEye = center([33, 133, 159, 145, 160, 144]);
-  const rightEye = center([263, 362, 386, 374, 385, 380]);
-  if (!leftEye || !rightEye) return;
+  const eyeA = center([33, 133, 159, 145, 160, 144]);
+  const eyeB = center([263, 362, 386, 374, 385, 380]);
+  if (!eyeA || !eyeB) return;
+
+  // On a mirrored (selfie) canvas the landmark sides swap, which would flip the
+  // frame 180deg. Always orient from the leftmost eye to the rightmost eye.
+  const [leftEye, rightEye] = eyeA.x <= eyeB.x ? [eyeA, eyeB] : [eyeB, eyeA];
 
   const eyeDist = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y);
   const angle = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
