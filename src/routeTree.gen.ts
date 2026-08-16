@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedAdminUserUserIdRouteImport } from './routes/_authenticated/admin/user.$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -45,6 +46,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminUserUserIdRoute =
+  AuthenticatedAdminUserUserIdRouteImport.update({
+    id: '/admin/user/$userId',
+    path: '/admin/user/$userId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -52,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/user/$userId': typeof AuthenticatedAdminUserUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -59,6 +67,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/user/$userId': typeof AuthenticatedAdminUserUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -68,12 +77,25 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/user/$userId': typeof AuthenticatedAdminUserUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/reset-password' | '/studio' | '/admin/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/studio'
+    | '/admin/'
+    | '/admin/user/$userId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/reset-password' | '/studio' | '/admin'
+  to:
+    | '/'
+    | '/auth'
+    | '/reset-password'
+    | '/studio'
+    | '/admin'
+    | '/admin/user/$userId'
   id:
     | '__root__'
     | '/'
@@ -82,6 +104,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/studio'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/user/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -135,17 +158,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/user/$userId': {
+      id: '/_authenticated/admin/user/$userId'
+      path: '/admin/user/$userId'
+      fullPath: '/admin/user/$userId'
+      preLoaderRoute: typeof AuthenticatedAdminUserUserIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminUserUserIdRoute: typeof AuthenticatedAdminUserUserIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminUserUserIdRoute: AuthenticatedAdminUserUserIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
