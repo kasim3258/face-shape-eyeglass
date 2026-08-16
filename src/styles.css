@@ -189,3 +189,47 @@
 @utility animate-float-slow {
   animation: float-slow 18s ease-in-out infinite;
 }
+
+/* Light mode palette (applied via the `light` class on <html>) */
+.light {
+  --background: oklch(0.98 0.008 300);
+  --foreground: oklch(0.22 0.04 285);
+  --card: oklch(1 0 0 / 0.7);
+  --card-foreground: oklch(0.22 0.04 285);
+  --popover: oklch(0.99 0.005 300);
+  --popover-foreground: oklch(0.22 0.04 285);
+  --primary: oklch(0.55 0.22 305);
+  --primary-foreground: oklch(0.99 0.01 300);
+  --secondary: oklch(0.94 0.02 300);
+  --secondary-foreground: oklch(0.25 0.04 285);
+  --muted: oklch(0.94 0.015 300);
+  --muted-foreground: oklch(0.48 0.03 290);
+  --accent: oklch(0.62 0.18 350);
+  --accent-foreground: oklch(0.99 0.01 300);
+  --destructive: oklch(0.58 0.23 25);
+  --destructive-foreground: oklch(0.99 0.01 300);
+  --border: oklch(0.2 0.04 285 / 14%);
+  --input: oklch(0.2 0.04 285 / 16%);
+  --ring: oklch(0.55 0.22 305);
+  --glow: oklch(0.62 0.2 305);
+  --sidebar: oklch(0.99 0.005 300);
+  --sidebar-foreground: oklch(0.22 0.04 285);
+  --sidebar-primary: oklch(0.55 0.22 305);
+  --sidebar-primary-foreground: oklch(0.99 0.01 300);
+  --sidebar-accent: oklch(0.94 0.02 300);
+  --sidebar-accent-foreground: oklch(0.25 0.04 285);
+  --sidebar-border: oklch(0.2 0.04 285 / 14%);
+  --sidebar-ring: oklch(0.55 0.22 305);
+}
+
+.light body {
+  background-image:
+    radial-gradient(60rem 40rem at 15% -10%, oklch(0.68 0.21 305 / 0.14), transparent 60%),
+    radial-gradient(50rem 40rem at 95% 10%, oklch(0.74 0.16 350 / 0.12), transparent 60%),
+    radial-gradient(55rem 45rem at 50% 110%, oklch(0.7 0.15 255 / 0.12), transparent 60%);
+}
+
+.light .glass-card {
+  background: linear-gradient(160deg, oklch(1 0 0 / 0.85), oklch(1 0 0 / 0.6));
+  box-shadow: 0 20px 50px -30px oklch(0.3 0.06 285 / 0.5);
+}
