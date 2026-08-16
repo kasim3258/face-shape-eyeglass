@@ -172,6 +172,7 @@ export function drawGlasses(
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(angle);
-  ctx.drawImage(glasses, -gWidth / 2, -gHeight / 2, gWidth, gHeight);
+  // Slight downward nudge so lenses sit on the eyes rather than the brow line.
+  ctx.drawImage(glasses, -gWidth / 2, -gHeight / 2 + gHeight * 0.06, gWidth, gHeight);
   ctx.restore();
 }
