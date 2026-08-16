@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Glasses, Loader2, Lock, Mail, User as UserIcon } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Glasses, Loader2, Lock, Mail, ShieldCheck, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -178,7 +178,7 @@ function AuthPage() {
         <div className="mb-6 flex gap-1 rounded-2xl border border-border bg-white/5 p-1">
           {([
             { id: "signin", label: "Sign in" },
-            { id: "signup", label: "Sign up" },
+            { id: "signup", label: "Create account" },
           ] as const).map(({ id, label }) => (
             <button
               key={id}
@@ -280,6 +280,13 @@ function AuthPage() {
           )}
         </div>
       </div>
+
+      <Link
+        to="/admin-login"
+        className="glass-card absolute bottom-8 left-1/2 flex w-full max-w-md -translate-x-1/2 items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+      >
+        <ShieldCheck className="size-4" /> Admin login
+      </Link>
     </main>
   );
 }
