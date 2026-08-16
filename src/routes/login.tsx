@@ -283,7 +283,7 @@ function AuthPage() {
 
       <Link
         to="/admin-login"
-        className="glass-card absolute bottom-8 left-1/2 flex w-full max-w-md -translate-x-1/2 items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        className="glass-card mt-4 flex w-full max-w-md items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
       >
         <ShieldCheck className="size-4" /> Admin login
       </Link>
