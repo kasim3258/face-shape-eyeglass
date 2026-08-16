@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/tooltip";
 import { AnimatedCounter } from "@/components/admin/AnimatedCounter";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   clearAllHistory,
   clearUserHistory,
@@ -109,6 +110,7 @@ function initials(name: string, email: string) {
 
 function AdminDashboard() {
   const queryClient = useQueryClient();
+  const { user, refresh: refreshAuth } = useAuth();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -119,8 +121,39 @@ function AdminDashboard() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [adminName, setAdminName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
+  const [savingName, setSavingName] = useState(false);
 
   const { data, isLoading } = useQuery({ queryKey: ["admin-overview"], queryFn: fetchAdminOverview });
+
+  const myProfile = data?.users.find((u) => u.id === user?.id);
+  const currentName = myProfile && myProfile.full_name !== "—" ? myProfile.full_name : "";
+  const nameValue = nameTouched ? adminName : currentName;
+
+  const saveAdminName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = nameValue.trim();
+    if (!user) return;
+    if (value.length < 2) {
+      toast.error("Name must be at least 2 characters");
+      return;
+    }
+    setSavingName(true);
+    try {
+      const { error } = await supabase.from("profiles").update({ full_name: value }).eq("id", user.id);
+      if (error) throw error;
+      await supabase.auth.updateUser({ data: { full_name: value } });
+      setNameTouched(false);
+      toast.success("Name updated");
+      await refreshAuth();
+      await refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update name");
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
 
@@ -479,6 +512,25 @@ function AdminDashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <form onSubmit={saveAdminName} className="glass-card p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <UserPen className="size-4 text-primary" /> Edit your admin name
+          </h2>
+          <Input
+            value={nameValue}
+            onChange={(e) => {
+              setNameTouched(true);
+              setAdminName(e.target.value);
+            }}
+            placeholder="Display name"
+            className="h-10 rounded-xl"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">Shown across the dashboard and activity logs.</p>
+          <Button type="submit" disabled={savingName} className="btn-hero mt-4 h-10 rounded-xl font-semibold hover:brightness-110">
+            {savingName && <Loader2 className="size-4 animate-spin" />} Save name
+          </Button>
+        </form>
+
         <form onSubmit={changePassword} className="glass-card p-5">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
             <KeyRound className="size-4 text-primary" /> Change your admin password
