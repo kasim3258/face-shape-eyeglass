@@ -11,6 +11,7 @@ import {
   KeyRound,
   Loader2,
   LogIn,
+  UserPen,
   ShieldCheck,
   ShieldOff,
   Sparkles,
