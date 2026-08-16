@@ -152,7 +152,7 @@ function AuthPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         <div className="animate-float-slow absolute -right-40 -top-40 size-[32rem] rounded-full bg-primary/15 blur-3xl" />
         <div className="animate-float-slow absolute -bottom-52 -left-40 size-[36rem] rounded-full bg-accent/10 blur-3xl" />
