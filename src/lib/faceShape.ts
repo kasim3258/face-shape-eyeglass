@@ -1,8 +1,8 @@
-import aviator from "@/assets/aviator.png.asset.json";
-import rectangle from "@/assets/rectangle.png.asset.json";
-import round from "@/assets/round.png.asset.json";
-import square from "@/assets/square.png.asset.json";
-import wide from "@/assets/wide.png.asset.json";
+import aviator from "@/assets/aviator.png";
+import rectangle from "@/assets/rectangle.png";
+import round from "@/assets/round.png";
+import square from "@/assets/square.png";
+import wide from "@/assets/wide.png";
 
 export type FaceShape = "Heart" | "Oblong" | "Oval" | "Round" | "Square";
 
@@ -17,11 +17,11 @@ export const RECOMMENDATION: Record<FaceShape, string> = {
 };
 
 export const GLASSES_URL: Record<FaceShape, string> = {
-  Round: rectangle.url,
-  Square: round.url,
-  Heart: aviator.url,
-  Oval: square.url,
-  Oblong: wide.url,
+  Round: rectangle,
+  Square: round,
+  Heart: aviator,
+  Oval: square,
+  Oblong: wide,
 };
 
 export const SHAPE_COPY: Record<FaceShape, { why: string; avoid: string }> = {
