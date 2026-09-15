@@ -17,11 +17,11 @@ export const RECOMMENDATION: Record<FaceShape, string> = {
 };
 
 export const GLASSES_URL: Record<FaceShape, string> = {
-  Round: rectangle.url,
-  Square: round.url,
-  Heart: aviator.url,
-  Oval: square.url,
-  Oblong: wide.url,
+  Round: rectangle,
+  Square: round,
+  Heart: aviator,
+  Oval: square,
+  Oblong: wide,
 };
 
 export const SHAPE_COPY: Record<FaceShape, { why: string; avoid: string }> = {
