@@ -9,11 +9,18 @@ const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wa
 async function create(runningMode: "IMAGE" | "VIDEO") {
   const vision = await import("@mediapipe/tasks-vision");
   const fileset = await vision.FilesetResolver.forVisionTasks(WASM_BASE);
-  return vision.FaceLandmarker.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: modelAsset.url, delegate: "GPU" },
-    runningMode,
-    numFaces: 1,
-  });
+  const build = (delegate: "GPU" | "CPU") =>
+    vision.FaceLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: modelAsset.url, delegate },
+      runningMode,
+      numFaces: 1,
+    });
+  try {
+    return await build("GPU");
+  } catch (e) {
+    console.warn("[faceLandmarker] GPU delegate unavailable, falling back to CPU", e);
+    return await build("CPU");
+  }
 }
 
 export function getImageLandmarker() {

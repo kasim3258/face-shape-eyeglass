@@ -86,7 +86,9 @@ export function UploadAnalyzer() {
       }
     } catch (e) {
       console.error(e);
-      setError("Analysis failed. Please try again.");
+      setError(
+        `Analysis failed. ${e instanceof Error ? e.message : "Please try again."}`,
+      );
       void logActivity("Error: Analysis Failed");
     } finally {
       setBusy(false);
